@@ -1,0 +1,1202 @@
+# PRODUCT REQUIREMENTS DOCUMENT
+
+# TabibCare
+### Medical Practice Management SaaS Platform
+
+**Version 1.2 | February 2026 | CONFIDENTIAL**
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Product Overview](#2-product-overview)
+3. [Target Market & Users](#3-target-market--users)
+4. [Business Model](#4-business-model)
+5. [Technical Architecture](#5-technical-architecture)
+6. [Feature Modules (Detailed)](#6-feature-modules-detailed)
+7. [Patient Mobile App (Espace Patient)](#7-patient-mobile-app-espace-patient)
+8. [File Storage & Document Management](#8-file-storage--document-management)
+9. [Multi-tenancy Architecture](#9-multi-tenancy-architecture)
+10. [Internationalization (i18n)](#10-internationalization-i18n)
+11. [Offline Support](#11-offline-support)
+12. [Security & Compliance](#12-security--compliance)
+13. [Notification System](#13-notification-system)
+14. [User Roles & Interfaces](#14-user-roles--interfaces)
+15. [UI/UX Guidelines](#15-uiux-guidelines)
+16. [API Design](#16-api-design)
+17. [Database Schema (with Column Details)](#17-database-schema-with-column-details)
+18. [Infrastructure & Hosting](#18-infrastructure--hosting)
+19. [Development Roadmap](#19-development-roadmap-8-weeks)
+20. [Success Metrics & KPIs](#20-success-metrics--kpis)
+21. [Risks & Mitigations](#21-risks--mitigations)
+22. [Appendix: Legacy SQL Schema Column Reference](#22-appendix-legacy-sql-schema-column-reference)
+
+---
+
+## 1. Executive Summary
+
+TabibCare is a cloud-based medical practice management SaaS platform designed for solo medical practitioners in Morocco. The platform transitions an existing, validated desktop application into a modern web and mobile solution, serving doctors and their patients through distinct role-based interfaces:
+
+- A **Doctor web interface** with full access to all medical and administrative modules
+- A **Medical Assistant (Aide-Medecin) web interface** with access to scheduling, patients, payments, and expenses
+- A **Patient mobile application (Espace Patient)** for appointment booking, document access, and multi-doctor management
+
+The platform launches with a focus on diabetology/endocrinology (leveraging existing consultation fields for HbA1c, glycemia, lipid panels, etc.), with architecture designed to be specialty-agnostic for future expansion. TabibCare addresses a significant gap in the Moroccan healthcare technology market where the majority of solo practitioners still rely on Excel or paper.
+
+**Key Differentiator:** The patient mobile app creates a network effect. Patients using the app with one doctor can connect with other doctors on the platform, driving organic growth.
+
+---
+
+## 2. Product Overview
+
+### 2.1 Product Vision
+
+To become the leading medical practice management platform in Morocco and francophone North Africa, empowering solo practitioners to digitize their practice while giving patients control over their healthcare journey.
+
+### 2.2 Document Summary
+
+| Field | Value |
+|---|---|
+| **Product Name** | TabibCare |
+| **Product Type** | SaaS (Web + Mobile) |
+| **Target Market** | Morocco (primary), Francophone North Africa (future) |
+| **Initial Specialty** | Diabetology / Endocrinology |
+| **Future Scope** | Specialty-agnostic (configurable templates) |
+| **Platforms** | Web (Doctor + Assistant), Mobile iOS & Android (Patient) |
+| **Languages** | French, Arabic (RTL), English |
+| **Timeline** | 2 months to V1 launch |
+| **Tech Stack** | Laravel (Backend) + Next.js + TailAdmin (Web) + React Native + Gluestack (Mobile) |
+| **Existing Validation** | Active desktop users, proven market demand |
+
+---
+
+## 3. Target Market & Users
+
+### 3.1 Primary Target
+
+Solo medical practitioners in Morocco, starting with diabetologists/endocrinologists. The majority of this market currently uses Excel or paper-based systems, representing a large untapped opportunity.
+
+### 3.2 User Personas
+
+#### Persona 1: Dr. Karim (Diabetologist / Doctor Role)
+- Age 35-55, solo practice in urban Morocco
+- Sees 15-25 patients daily
+- Needs to track HbA1c, glycemia, lipid panels, weight evolution over time
+- Currently uses a mix of Excel and paper
+- Wants digital ordonnances and certificates with his cabinet branding
+- Pain points: time wasted on admin, lost patient files, no analytics
+
+#### Persona 2: Fatima (Medical Assistant / Aide-Medecin Role)
+- Manages the front desk: scheduling, patient intake, payments
+- Uses the simplified assistant interface (teal/blue navigation bar)
+- Access limited to: **Rendez-vous, Patients, Reglements, Depenses**
+- Does NOT see consultations, ordonnances, certificates, reports, or expertises
+- Processes payments and prints invoices/receipts
+
+#### Persona 3: Ahmed (Patient / Mobile App User)
+- Visits multiple doctors (diabetologist, cardiologist, GP)
+- Wants to book appointments without calling the office
+- Needs to access prescriptions and certificates on his phone
+- Wants to upload lab analyses for doctor review before visits
+- Values having all medical records from different doctors in one app
+
+---
+
+## 4. Business Model
+
+### 4.1 Pricing Structure
+
+| Item | Price |
+|---|---|
+| **Setup Fee** | 10,000 MAD (one-time, includes onboarding & configuration) |
+| **Annual Subscription** | 1,000 MAD/year (hosting, support, updates) |
+| **Patient App** | Free for patients (growth engine) |
+| **Payment Model** | B2B (doctor pays), B2C (patient app is free) |
+
+### 4.2 Future Monetization Opportunities
+
+- Premium features tier (advanced analytics, AI insights)
+- SMS/WhatsApp notification packages
+- Multi-doctor clinic plans at higher pricing
+- Insurance integration partnerships
+
+---
+
+## 5. Technical Architecture
+
+### 5.1 Tech Stack Overview
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Backend API | Laravel 11 (PHP 8.3) | RESTful API, auth, business logic |
+| Web Frontend | Next.js 14 + TailAdmin | Doctor & assistant dashboards |
+| UI Components | shadcn/ui + Tailwind CSS | Custom components, RTL support |
+| Data Fetching | TanStack Query v5 | API caching, background sync, offline |
+| Calendar | FullCalendar v6 | Appointment scheduling (day/week views) |
+| Mobile App | React Native (Expo) + Gluestack | Patient app (iOS & Android) |
+| Mobile Styling | NativeWind v4 | Tailwind CSS for React Native |
+| Database | MySQL 8.0 | Primary data store |
+| Cache/Queue | Redis | Sessions, queues, caching |
+| File Storage | Backblaze B2 | Documents, images, PDFs |
+| Push Notifications | OneSignal | Patient & staff notifications |
+| PDF Generation | Laravel DomPDF / Browsershot | Ordonnances, certificates, invoices |
+| Search | Laravel Scout + Meilisearch | Fast patient search |
+| Forms | React Hook Form + Zod | Form handling and validation |
+| Charts | Recharts | Statistics dashboard visualizations |
+| i18n (Web) | next-intl | French, Arabic (RTL), English |
+| i18n (Mobile) | i18next | French, Arabic (RTL), English |
+| Offline Sync | Service Workers + IndexedDB | PWA offline capability |
+
+### 5.2 Admin Dashboard Template
+
+**Template: TailAdmin Next.js (Free, MIT License)**
+
+TailAdmin provides 500+ pre-built dashboard UI components, 7 dashboard variations, data tables, calendar views, charts, forms, modals, and more. Built on Next.js + Tailwind CSS + TypeScript. This saves 2-3 weeks of UI development time.
+
+**Why TailAdmin:** Free and open-source (MIT), built specifically for Next.js, includes calendar and data table components needed for medical scheduling, active maintenance, and optional Pro upgrade ($49) if more components are needed later.
+
+**Two Theme Variants:**
+- **Doctor Interface:** Customized with green color scheme (matching existing desktop app)
+- **Assistant Interface:** Customized with teal/blue color scheme (matching existing desktop app)
+- Both built from same TailAdmin base with different Tailwind color tokens
+
+### 5.3 Web App Libraries (Next.js)
+
+| Library | Version | Purpose |
+|---|---|---|
+| TailAdmin Next.js | v2.x (Free) | Admin dashboard template (layout, sidebar, tables, forms, charts) |
+| shadcn/ui | Latest | Custom UI components (command palette, date pickers, modals, toasts) |
+| TanStack Query | v5 | Server state management, API data fetching, caching, background sync |
+| FullCalendar | v6 | Appointment calendar (day/week/month views, drag-and-drop, conflict detection) |
+| Recharts | v2 | Statistics dashboard charts (line, bar, pie, area) |
+| React Hook Form | v7 | Form state management for all input forms (patients, consultations, etc.) |
+| Zod | v3 | Schema validation (form validation, API response validation) |
+| next-intl | v3 | Internationalization (French, Arabic RTL, English) |
+| Tailwind CSS | v3/v4 | Utility-first CSS framework (with RTL plugin for Arabic) |
+| Lucide React | Latest | Icon library (clean, consistent medical-friendly icons) |
+| date-fns | v3 | Date manipulation and formatting (locale-aware for FR/AR/EN) |
+| Axios | v1 | HTTP client for API calls (interceptors for auth tokens) |
+| zustand | v4 | Client-side state management (offline queue, UI state) |
+| next-pwa | Latest | Progressive Web App support (service worker, offline caching) |
+| idb-keyval | Latest | IndexedDB wrapper for offline data storage |
+| react-to-print | Latest | Print support for invoices, certificates, ordonnances |
+| cmdk | Latest | Command palette (Ctrl+K quick search for patients, actions) |
+
+### 5.4 Mobile App Libraries (React Native)
+
+| Library | Version | Purpose |
+|---|---|---|
+| React Native (Expo) | SDK 52+ | Cross-platform mobile framework (iOS + Android) |
+| Gluestack UI v2 | Latest | UI component library (buttons, inputs, modals, cards, lists) |
+| NativeWind | v4 | Tailwind CSS for React Native (consistent styling with web app) |
+| TanStack Query | v5 | API data fetching and caching (same patterns as web) |
+| React Native Calendars | Latest | Date picker and calendar for appointment booking |
+| React Navigation | v6 | Screen navigation (bottom tabs, stack navigator) |
+| OneSignal React Native | Latest | Push notification integration |
+| Expo Camera | Latest | Camera access for analyses photo upload |
+| Expo Document Picker | Latest | File picker for PDF upload (lab analyses) |
+| Expo Secure Store | Latest | Encrypted local storage for auth tokens |
+| React Native PDF | Latest | In-app PDF viewer for ordonnances, certificates |
+| React Hook Form | v7 | Form management (same patterns as web) |
+| Zod | v3 | Validation (same schemas as web where applicable) |
+| i18next + react-i18next | Latest | Internationalization (FR/AR/EN) |
+| date-fns | v3 | Date formatting (consistent with web app) |
+| Lottie React Native | Latest | Animations (loading states, success confirmations) |
+
+### 5.5 Backend Libraries (Laravel)
+
+| Library | Purpose |
+|---|---|
+| Laravel Sanctum | API token authentication (web app) |
+| tymon/jwt-auth | JWT authentication (mobile app) |
+| Spatie Laravel Permission | Role-based access control (Doctor, Secretary, Patient) |
+| Laravel Scout + Meilisearch | Full-text search (patients by name, phone, CIN) |
+| Laravel Horizon | Queue monitoring and management (Redis queues) |
+| Spatie Laravel Medialibrary | File upload management with Backblaze B2 integration |
+| Spatie Laravel Activitylog | Audit logging (who did what, when) |
+| Laravel DomPDF / Browsershot | PDF generation (ordonnances, certificates, invoices, reports) |
+| Maatwebsite Laravel Excel | Excel export for statistics module |
+| Spatie Laravel Translatable | Model translations (medication names in FR/AR/EN) |
+| Laravel Backup | Automated database backups |
+| Spatie Laravel Query Builder | API query filtering, sorting, pagination |
+| Laravel Cashier (future) | Payment processing if online payments added later |
+
+### 5.6 Development & DevOps Tools
+
+| Tool | Purpose |
+|---|---|
+| TypeScript | Type safety across all Next.js and React Native code |
+| ESLint + Prettier | Code quality and formatting |
+| Laravel Pint | PHP code style (Laravel standard) |
+| PHPStan / Larastan | PHP static analysis |
+| Vitest / Jest | JavaScript/TypeScript unit testing |
+| PHPUnit / Pest | Laravel backend testing |
+| GitHub Actions | CI/CD pipeline (lint, test, deploy) |
+| Docker (dev) | Local development environment consistency |
+| Postman / Insomnia | API testing and documentation |
+| Sentry | Error tracking and monitoring (web + mobile) |
+| Laravel Telescope (dev) | Debug and inspect Laravel app in development |
+
+### 5.7 System Architecture
+
+```
+[Patient Mobile App (React Native)]  <-->  [Laravel REST API]  <-->  [MySQL]
+[Doctor Web App (Next.js)]           <-->  [Laravel REST API]  <-->  [Backblaze B2]
+[Assistant Web App (Next.js)]        <-->  [Laravel REST API]  <-->  [Redis]
+                                           [OneSignal]         <-->  [Meilisearch]
+```
+
+---
+
+## 6. Feature Modules (Detailed)
+
+All 13 modules from the original scope are included in V1. Each module includes exact database fields from the existing SQL schema.
+
+---
+
+### 6.1 Patient Management (Gestion des Patients)
+
+**Access:** Doctor ✓ | Assistant ✓ | Patient (own profile only)
+
+#### Features
+- Full CRUD operations for patient records
+- Patient photo capture/upload
+- Auto-generated file number per doctor (DR-XXXX format)
+- Medical history view (all consultations for this patient)
+- Fast search by Name, Phone, CIN (National ID)
+- Patient types: Digital (has app account) and Physical (manual entry only)
+- Link/claim system: physical patients can later claim their records via mobile app
+
+#### Database Columns (from existing SQL: Patients table)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `idPatient` | int IDENTITY | NO | Primary key, auto-increment |
+| `CIN` | nvarchar(20) | YES | National ID card number |
+| `NomComplete` | nvarchar(100) | NO | Full name of patient |
+| `DN` | date | YES | Date of birth (Date de Naissance) |
+| `LN` | nvarchar(50) | YES | Place of birth (Lieu de Naissance) |
+| `VILLE` | nvarchar(20) | YES | City of residence |
+| `PROFESSION` | nvarchar(50) | YES | Patient profession/occupation |
+| `INSCRIPTION` | date | NO | Registration date (default: getdate()) |
+| `GENDER` | nvarchar(50) | YES | Gender |
+| `TELEPHONE` | nvarchar(50) | NO | Phone number (required) |
+| `ADRESSE` | nvarchar(250) | YES | Full address |
+| `EMAIL` | nvarchar(100) | YES | Email address |
+| `TYPE_CV` | nvarchar(20) | YES | Insurance/coverage type |
+| `OBSERVATION` | nvarchar(500) | YES | General observations/notes |
+| `typedossier` | varchar(50) | YES | File/dossier type |
+| `iddossier` | varchar(20) | YES | External dossier reference ID |
+
+---
+
+### 6.2 Appointment Management (Rendez-vous / Agenda)
+
+**Access:** Doctor (as AGENDA) ✓ | Assistant (as RENDEZ-VOUS) ✓ | Patient (book/cancel own)
+
+#### Features
+- Daily and weekly calendar planning views (FullCalendar)
+- Appointment conflict detection (unique constraint on Debut in existing schema)
+- Color-coded status indicators
+- Status workflow: En attente → Confirmé → En cours → Terminé / Annulé / Absent
+- Patient-initiated booking from mobile app
+- Configurable time slots per doctor (slot duration, working hours, breaks)
+- Walk-in appointment support
+- Appointment reminders via push notification (24h and 1h before)
+
+#### Database Columns (from existing SQL: Rdvs table)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `name` | nvarchar(50) | YES | Patient name (for quick reference) |
+| `Telephone` | nvarchar(50) | YES | Patient phone number |
+| `Debut` | datetime | NO | Start date/time (UNIQUE constraint) |
+| `Fin` | datetime | NO | End date/time |
+| `Etat` | nvarchar(10) | YES | Status (En attente, Confirmé, Annulé, etc.) |
+| `Description` | nvarchar(250) | YES | Appointment notes/reason |
+
+> **SaaS Enhancement:** Add `idpatient` FK, `idtenant` FK, `created_by`, `booking_source` (web/mobile/walkin), `reminder_sent` flag.
+
+---
+
+### 6.3 Consultation Management (Gestion des Consultations)
+
+**Access:** Doctor ONLY ✓ | Assistant ✗ | Patient (view own history in app)
+
+#### Features
+- Consultation linked to patient and appointment
+- Vital signs: weight, height, temperature, blood pressure
+- Diabetology-specific lab values: HbA1c, fasting glucose, post-meal glucose, glucagon, lipid panel, glucosuria, acetone
+- Physical examination notes, diagnostic, treatment recommendations
+- Consultation pricing and payment tracking (prix, regle)
+- Full consultation history per patient
+
+#### Database Columns (from existing SQL: Consultations table)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY | NO | Primary key, auto-increment |
+| `idpatient` | int | NO | FK to Patients table |
+| `dateconsultation` | date | NO | Date of consultation |
+| `poid` | decimal(5,2) | YES | Weight (kg) |
+| `taille` | int | YES | Height (cm) |
+| `temperature` | decimal(5,2) | YES | Body temperature |
+| `ta` | nvarchar(10) | YES | Blood pressure (Tension Artérielle) |
+| `hba1c` | decimal(5,2) | YES | HbA1c percentage (diabetology) |
+| `glycemie_a_jeun` | decimal(5,2) | YES | Fasting blood glucose |
+| `glycemie_apres_repas` | decimal(5,2) | YES | Post-meal blood glucose |
+| `glucagon` | decimal(5,2) | YES | Glucagon level |
+| `physique` | nvarchar(500) | YES | Physical examination notes |
+| `diagonistic` | nvarchar(500) | YES | Diagnosis |
+| `tritement_conciels` | nvarchar(500) | YES | Treatment recommendations/advice |
+| `tt` | decimal(5,2) | YES | TT value |
+| `th` | decimal(5,2) | YES | TH value |
+| `glogylie` | nvarchar(500) | YES | Glycol level notes |
+| `glucosurie` | char(1) | YES | Glucosuria indicator (+/-) |
+| `ct` | decimal(5,2) | YES | Total Cholesterol |
+| `tg` | decimal(5,2) | YES | Triglycerides |
+| `hdl` | decimal(5,2) | YES | HDL Cholesterol |
+| `acetone` | char(1) | YES | Ketone/Acetone indicator (+/-) |
+| `prix` | decimal(5,2) | YES | Consultation price |
+| `regle` | varchar(3) | YES | Payment status (Oui/Non) |
+
+> **Note:** These consultation fields are already diabetology-specific from the existing SQL schema. For future specialty-agnostic design, specialty-specific fields will be stored in a separate `consultation_custom_fields` table.
+
+---
+
+### 6.4 Medical Certificates (Gestion des Certificats)
+
+**Access:** Doctor ✓ | Assistant ✗ | Patient (view/download own in app)
+
+#### Features
+- Certificate types: Rest (repos), Aptitude, Custom
+- Auto-numbered certificates per doctor tenant
+- PDF generation with doctor's cabinet branding (logo, header, stamp area)
+- Certificate history per patient
+- Patient can view and download certificates in mobile app
+- Print-ready A4 format
+
+#### Database Columns (from existing SQL: Certificats table)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY | NO | Primary key, auto-increment |
+| `idpatient` | int | NO | FK to Patients table |
+| `datecertificat` | date | NO | Date of certificate |
+| `attesteque` | nvarchar(250) | YES | Attestation text (certifies that...) |
+| `type` | nvarchar(150) | NO | Certificate type (repos, aptitude, etc.) |
+| `urgance` | nvarchar(150) | YES | Urgency level |
+| `delay` | int | YES | Duration in days |
+| `debut` | date | YES | Start date of certificate validity |
+| `fin` | date | YES | End date of certificate validity |
+
+---
+
+### 6.5 Medication Management (Gestion des Medicaments)
+
+**Access:** Doctor ✓ | Assistant (view stock only) | Patient ✗
+
+#### Features
+- Medication database (searchable catalog)
+- Stock tracking per cabinet
+- Low stock alerts (configurable threshold)
+- Pricing information (purchase price, selling price)
+- Medication categories and classifications
+- Expiration date monitoring with alerts
+- Integration with ordonnance generation
+
+> **Note:** No medications table exists in the legacy SQL schema. This is a new module. Schema: `id`, `tenant_id`, `name`, `generic_name`, `category`, `dosage_form`, `unit`, `purchase_price`, `selling_price`, `stock_qty`, `min_stock_alert`, `expiration_date`, `barcode`, `notes`.
+
+---
+
+### 6.6 Payment Management (Gestion des Reglements)
+
+**Access:** Doctor ✓ | Assistant ✓ | Patient ✗
+
+#### Features
+- Payment methods: Cash (Espèce), Card, Insurance (Assurance)
+- Partial payment tracking (reste à payer / balance due)
+- Payment linked to consultation
+- Payment history per patient and per consultation
+- Amount in numbers and in written letters (somme + lettre)
+- Daily cash register summary
+- Insurance claim tracking
+- Printable payment receipts
+
+#### Database Columns (from existing SQL: REGLEMENTS table)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY | NO | Primary key, auto-increment |
+| `idconsultation` | int | NO | FK to Consultations table |
+| `date` | date | NO | Payment date (default: getdate()) |
+| `somme` | money | NO | Amount paid |
+| `body` | nvarchar(500) | YES | Payment description/details |
+| `lettre` | nvarchar(150) | YES | Amount in written letters |
+
+> **SaaS Enhancement:** Add `tenant_id`, `payment_method` (espece/carte/assurance), `reste_a_payer`, `insurance_reference`, `receipt_number`.
+
+---
+
+### 6.7 Invoice Management (Gestion des Factures)
+
+**Access:** Doctor ✓ | Assistant (create/view/print) ✓ | Patient (view own)
+
+#### Features
+- Auto-numbered invoices per doctor per year (FACT-2026-XXXX)
+- Invoice linked to consultation
+- Print formats: A4 (formal) and Ticket (receipt)
+- Tax calculation: HT (before tax), TVA (VAT), TTC (total with tax)
+- Doctor cabinet information auto-populated
+- PDF generation and download
+- Invoice status: Draft, Sent, Paid, Overdue
+
+> **Note:** The existing SQL uses the `Report_Facture` stored procedure joining REGLEMENTS + Patients + Consultations. The SaaS version will have a dedicated `invoices` table.
+
+---
+
+### 6.8 Prescription Management (Gestion des Ordonnances)
+
+**Access:** Doctor ✓ | Assistant ✗ | Patient (view/download own in app)
+
+#### Features
+- PDF ordonnance generation with cabinet branding (logo, doctor name, address, phone)
+- Medication list with dosage, frequency, and duration
+- Treatment duration specification
+- Select from medication database or free-text entry
+- Ordonnance templates (reusable for common prescriptions)
+- Print-ready format
+- Patient can view ordonnances in mobile app
+
+> **Note:** No ordonnances table exists in legacy SQL. New tables: `prescriptions` (id, tenant_id, patient_id, consultation_id, date, notes) and `prescription_items` (id, prescription_id, medication_name, dosage, frequency, duration, instructions).
+
+---
+
+### 6.9 Medical Reports (Gestion des Rapports)
+
+**Access:** Doctor ONLY ✓ | Assistant ✗ | Patient (if shared)
+
+#### Features
+- Detailed medical report creation
+- Report history per patient
+- PDF export with professional formatting
+- Template system for common report types
+- Attach to patient record
+
+---
+
+### 6.10 Expertise Management (Gestion des Expertises)
+
+**Access:** Doctor ONLY ✓ | Assistant ✗ | Patient ✗
+
+#### Features
+- Expertise report creation and management
+- Status tracking: En cours (In Progress) / Terminé (Completed)
+- File attachments (documents, images, lab results)
+- Linked to patient record
+- PDF export
+
+---
+
+### 6.11 Patient Evolution Tracking (Gestion des Évolutions)
+
+**Access:** Doctor ONLY ✓ | Patient (view own timeline in app)
+
+#### Features
+- Chronological medical notes
+- Visual timeline of patient visits and key events
+- Graphical charts: HbA1c trend, weight evolution, glucose trends (using existing consultation fields)
+- Comparison across time periods
+- Alerts for worsening trends
+
+---
+
+### 6.12 Cabinet Expense Management (Gestion des Dépenses)
+
+**Access:** Doctor ✓ | Assistant ✓ | Patient ✗
+
+#### Features
+- Record cabinet operating expenses
+- Expense categories (rent, utilities, supplies, equipment, etc.)
+- Supplier/vendor management
+- Monthly expense statistics and summaries
+- Expense vs. revenue comparison
+- Receipt/document attachment
+
+---
+
+### 6.13 Analytics & Statistics Dashboard (Statistiques)
+
+**Access:** Doctor ✓ | Assistant ✗ | Patient ✗
+
+#### Features
+- Total patient count and growth
+- Daily / weekly / monthly revenue
+- Top medical acts performed
+- Interactive charts (Recharts)
+- Export to Excel (.xlsx) and PDF
+- Appointment analytics (no-show rate, peak hours)
+- Payment analytics (collection rate, outstanding balances)
+
+---
+
+### 6.14 Settings (Paramètres) — Doctor Only
+
+#### Features
+- Cabinet information (name, address, phone, logo, stamp image)
+- Doctor profile (name, name in Arabic, speciality, INPE number)
+- Working hours and appointment slot configuration
+- Default consultation price
+- PDF templates customization (ordonnance, certificate header/footer)
+- Assistant account management (create/disable assistant users)
+- Language preference
+- Notification preferences
+
+---
+
+## 7. Patient Mobile App (Espace Patient)
+
+The patient mobile app is both a feature and a growth engine. It creates network effects by allowing patients to manage their relationship with multiple doctors on the platform.
+
+### 7.1 Core Features
+
+- Self-registration and profile management
+- Book and cancel appointments with any connected doctor
+- View upcoming and past appointments across all connected doctors
+- Access prescriptions/ordonnances (read-only, PDF download)
+- View medical certificates (read-only, PDF download)
+- View consultation history per doctor (with doctor permission)
+- Upload medical analyses and lab results for doctor review
+- Push notifications via OneSignal
+- Multi-doctor dashboard: see all connected doctors in one view
+
+### 7.2 Patient-Doctor Linking
+
+#### Scenario A: Patient already has the app
+1. Patient arrives at doctor's office
+2. Secretary searches by phone or CIN
+3. System finds existing patient account
+4. Doctor sends link request
+5. Patient approves in their app
+6. Records now visible to this doctor (per patient permissions)
+
+#### Scenario B: Patient does not have the app
+1. Secretary creates a physical patient record (name, phone, CIN)
+2. System generates an invitation link/SMS
+3. Patient downloads app and registers
+4. Patient claims existing record by verifying phone/CIN
+
+#### Scenario C: Physical-only patient (no app needed)
+1. Secretary creates patient record in doctor system
+2. Patient exists only in the doctor's database
+3. No mobile app interaction required
+4. Patient can claim account at any time in the future
+
+### 7.3 Patient Permission System
+
+Patients control what each connected doctor can see:
+
+- **Default:** each doctor sees ONLY their own records
+- Patient can opt-in to share consultations cross-doctor
+- Lab result uploads: patient chooses which doctors can view
+- Prescriptions: visible to prescribing doctor; patient can share with others
+
+### 7.4 Analyses Upload
+
+- Supported formats: PDF, JPEG, PNG
+- Max file size: 10 MB per file
+- Stored on Backblaze B2 with signed URLs
+- Patient selects which doctor(s) to share with
+- Doctor receives push notification on new upload
+
+---
+
+## 8. File Storage & Document Management
+
+### 8.1 Storage Architecture
+
+| Field | Value |
+|---|---|
+| **Provider** | Backblaze B2 (S3-compatible API) |
+| **Access Method** | Pre-signed URLs (time-limited, secure) |
+| **Bucket Structure** | One bucket per environment (prod/staging) |
+| **File Organization** | `/{tenant_id}/{patient_id}/{category}/{filename}` |
+| **Encryption** | AES-256 at rest + TLS in transit |
+| **Max File Size** | 10 MB (patient), 25 MB (doctor) |
+| **Retention** | Indefinite (medical record requirements) |
+
+### 8.2 File Categories
+
+| Category | Generated By | Access |
+|---|---|---|
+| Patient Photos | Doctor/Secretary | Doctor, Patient |
+| Ordonnances (PDF) | System (auto-gen) | Doctor, Patient (read-only) |
+| Certificates (PDF) | System (auto-gen) | Doctor, Patient (read-only) |
+| Invoices (PDF) | System (auto-gen) | Doctor, Patient |
+| Medical Reports | Doctor | Doctor, Patient (if shared) |
+| Lab Analyses | Patient (upload) | Patient, Authorized doctors |
+| Expertise Attachments | Doctor | Doctor only |
+| Expense Receipts | Doctor/Secretary | Doctor only |
+
+### 8.3 Security
+
+- Pre-signed URLs with 15-minute expiration
+- No public bucket access; all requests go through Laravel API
+- MIME type + extension validation on upload
+- Audit log for all file access
+
+---
+
+## 9. Multi-tenancy Architecture
+
+### 9.1 Single Database, Tenant-per-Row
+
+All doctor/clinic data stored in one database with `tenant_id` on every tenant-scoped table. Optimal for hundreds to low thousands of solo practitioners.
+
+**Tenant-Scoped (isolated per doctor):**
+- Patients, Appointments, Consultations, Certificates, Prescriptions
+- Invoices, Payments, Expenses, Medications/Stock
+- Medical reports, Expertises, Evolution notes
+
+**Global (shared across tenants):**
+- Patient accounts (one patient, many doctors)
+- Medication reference catalog
+- Cities, system configuration
+
+### 9.2 Data Isolation
+
+- Laravel Global Scopes auto-apply `tenant_id` filter
+- Middleware sets tenant from authenticated user context
+- Patient app uses separate permission layer (not tenant-scoped)
+
+---
+
+## 10. Internationalization (i18n)
+
+| Language | Code | Direction | Priority |
+|---|---|---|---|
+| French | fr | LTR | Primary (default) |
+| Arabic | ar | RTL | Secondary |
+| English | en | LTR | Tertiary |
+
+- **Next.js:** next-intl for web translations
+- **React Native:** i18next for mobile translations
+- **Laravel:** built-in localization for API messages and PDF content
+- **RTL:** Tailwind CSS RTL plugin for Arabic layout
+- **PDF:** Arabic font support (Amiri/Cairo) with RTL rendering
+- **Database:** nvarchar columns for Unicode (Arabic names, addresses)
+- Users table includes `nomarab` and `adressearab` fields (from existing SQL)
+
+---
+
+## 11. Offline Support (PWA)
+
+### 11.1 Doctor/Assistant Web App
+
+- View today's appointments (cached)
+- Access recently viewed patient records (IndexedDB via idb-keyval)
+- Create consultations offline (queued for sync via zustand)
+- Record payments offline (queued for sync)
+- Visual online/offline indicator with pending sync count
+- Conflict resolution: server timestamp wins, user notified
+
+### 11.2 Patient Mobile App
+
+- Cached appointments and prescriptions
+- Downloaded PDFs available offline
+- Offline booking queued for sync
+
+---
+
+## 12. Security & Compliance
+
+### 12.1 Authentication
+
+- Laravel Sanctum for API tokens + tymon/jwt-auth for mobile
+- bcrypt password hashing (cost factor 12)
+- Optional 2FA (TOTP) for doctor accounts
+- Session: 8h web, 30 days mobile (refresh token)
+
+### 12.2 Data Protection
+
+- HTTPS (TLS 1.3) for all API communication
+- Database + file encryption at rest
+- Sensitive fields encrypted at app level (CIN, medical data)
+- Pre-signed URLs with short expiration
+
+### 12.3 Moroccan Compliance
+
+- **Law 09-08:** consent, data minimization, right to access/rectify
+- **Law 05-20:** security measures, incident response
+- Patient consent recorded digitally when linking to a doctor
+- Data export/deletion for right-to-be-forgotten
+
+### 12.4 Audit & Logging (Spatie Activitylog)
+
+- All user actions logged (who, what, when, IP)
+- Medical record access logged (read and write)
+- Modification history for patient records
+- Log retention: 5 years
+
+---
+
+## 13. Notification System (OneSignal)
+
+| Event | Recipient | Channel |
+|---|---|---|
+| New appointment booked | Doctor/Secretary | Push + In-App |
+| Appointment confirmed | Patient | Push |
+| Reminder (24h before) | Patient | Push |
+| Reminder (1h before) | Patient | Push |
+| Appointment cancelled | Both | Push + In-App |
+| New analyses uploaded | Doctor | Push + In-App |
+| Prescription ready | Patient | Push |
+| Certificate ready | Patient | Push |
+| Low stock alert | Doctor | In-App |
+| Payment received | Doctor/Secretary | In-App |
+
+---
+
+## 14. User Roles & Interfaces
+
+The application has three distinct interfaces, each with its own navigation and feature set.
+
+### 14.1 Doctor Interface (Green Navbar)
+
+**Navigation:** AGENDA | PATIENTS | CONSULTATIONS | RÈGLEMENTS | RAPPORTS | CERTIFICATS | ORDONNANCES | EXPERTISES | DÉPENSES | STATISTIQUES | PARAMÈTRES
+
+Full access to all modules. Primary interface with all medical, financial, and administrative features.
+
+| Module | Capabilities |
+|---|---|
+| Agenda | Full calendar management, approve patient bookings |
+| Patients | Full CRUD, search, view history, link patient accounts |
+| Consultations | Create, edit, view all vitals/diagnostics/treatments |
+| Règlements | Full payment management, partial payments, insurance |
+| Rapports | Create, edit, export medical reports |
+| Certificats | Create, print, manage all certificate types |
+| Ordonnances | Create, print, manage prescriptions |
+| Expertises | Create, manage, attach files, track status |
+| Dépenses | Full expense management, categories, suppliers |
+| Statistiques | Full analytics dashboard, export Excel/PDF |
+| Paramètres | Cabinet settings, profile, templates, user management |
+
+### 14.2 Assistant Interface (Teal/Blue Navbar)
+
+**Navigation:** RENDEZ-VOUS | PATIENTS | RÈGLEMENTS | DÉPENSES
+
+Simplified interface focused on front-desk operations. No access to medical records, consultations, prescriptions, certificates, reports, expertises, or statistics.
+
+| Module | Capabilities |
+|---|---|
+| Rendez-vous | Full scheduling: create, edit, cancel, manage walk-ins |
+| Patients | Create new patients, update contact info, search. Cannot view medical history. |
+| Règlements | Record payments, print receipts, view payment history |
+| Dépenses | Record cabinet expenses, manage categories |
+
+### 14.3 Patient Mobile App Interface
+
+**Bottom tab navigation:** HOME | APPOINTMENTS | DOCUMENTS | PROFILE
+
+| Tab | Capabilities |
+|---|---|
+| Home | Dashboard: connected doctors, upcoming appointments, recent documents |
+| Appointments | Book new, view upcoming/past, cancel, across all doctors |
+| Documents | View/download ordonnances, certificates; upload analyses |
+| Profile | Personal info, permission settings, language, notifications |
+
+### 14.4 Permissions Matrix (Complete)
+
+| Feature | Doctor | Assistant | Patient App |
+|---|---|---|---|
+| Agenda / Rendez-vous | Full access | Full access | Book/Cancel own |
+| Patients | Full CRUD + history | Create, Read, Update | View own profile |
+| Consultations | Full access | NO ACCESS | View own history |
+| Règlements | Full access | Create, Read | NO ACCESS |
+| Rapports | Full access | NO ACCESS | View if shared |
+| Certificats | Full access | NO ACCESS | View/Download own |
+| Ordonnances | Full access | NO ACCESS | View/Download own |
+| Expertises | Full access | NO ACCESS | NO ACCESS |
+| Dépenses | Full access | Full access | NO ACCESS |
+| Statistiques | Full access | NO ACCESS | NO ACCESS |
+| Paramètres | Full access | NO ACCESS | Own preferences |
+| Upload Analyses | View uploads | View uploads | Upload, Manage |
+| Audit Logs | View | NO ACCESS | NO ACCESS |
+
+---
+
+## 15. UI/UX Guidelines
+
+### 15.1 Doctor Web App (TailAdmin + Green Theme)
+
+- Built on TailAdmin Next.js template with green color scheme
+- Top navigation bar with all 11 modules (matching existing desktop green navbar)
+- Dashboard home with today's stats and upcoming appointments (TailAdmin dashboard components)
+- Quick-access command palette via Ctrl+K / Cmd+K (cmdk library)
+- FullCalendar for agenda/appointment views (day, week, month with drag-and-drop)
+- shadcn/ui data tables with TanStack Query for patient lists, consultations, payments
+- React Hook Form + Zod for all medical forms (consultation with 24 fields)
+- Recharts for statistics dashboard (revenue, patient growth, top acts)
+- Responsive: works on tablet for bedside use
+
+### 15.2 Assistant Web App (TailAdmin + Teal Theme)
+
+- Same TailAdmin base with teal/blue color tokens
+- Top navigation with 4 modules only (Rendez-vous, Patients, Règlements, Dépenses)
+- FullCalendar as primary screen (large calendar view)
+- Simplified patient forms (no medical fields, React Hook Form with reduced schema)
+- Quick payment entry workflow with shadcn/ui modals
+
+### 15.3 Patient Mobile App (Gluestack + NativeWind)
+
+- Modern, friendly design using Gluestack UI v2 components
+- NativeWind for Tailwind-consistent styling across web and mobile
+- Bottom tab navigation (React Navigation): Home, Appointments, Documents, Profile
+- React Native Calendars for appointment date selection
+- Gluestack cards for connected doctor list
+- Easy booking flow: select doctor → calendar date → time slot → confirm
+- React Native PDF viewer for ordonnances and certificates
+- Expo Camera + Document Picker for analyses upload
+- Lottie animations for loading states and success confirmations
+
+---
+
+## 16. API Design
+
+RESTful API built with Laravel, versioned under `/api/v1/`. Three API groups:
+
+- **Doctor API** (`/api/v1/doctor/*`): Full-access endpoints, tenant-scoped
+- **Assistant API** (`/api/v1/assistant/*`): Limited endpoints (appointments, patients, payments, expenses)
+- **Patient API** (`/api/v1/patient/*`): Mobile app endpoints, permission-scoped
+
+### 16.1 Key Endpoints
+
+**Authentication:**
+```
+POST /api/v1/auth/login
+POST /api/v1/auth/register
+POST /api/v1/auth/refresh
+```
+
+**Doctor API:**
+```
+GET/POST   /api/v1/doctor/patients
+GET/POST   /api/v1/doctor/appointments
+GET/POST   /api/v1/doctor/consultations
+GET/POST   /api/v1/doctor/certificates
+GET/POST   /api/v1/doctor/prescriptions
+GET        /api/v1/doctor/statistics
+```
+
+**Assistant API:**
+```
+GET/POST   /api/v1/assistant/appointments
+GET/POST   /api/v1/assistant/patients          (limited fields)
+GET/POST   /api/v1/assistant/payments
+GET/POST   /api/v1/assistant/expenses
+```
+
+**Patient API:**
+```
+GET        /api/v1/patient/doctors
+GET/POST   /api/v1/patient/appointments
+GET        /api/v1/patient/prescriptions
+GET        /api/v1/patient/certificates
+POST       /api/v1/patient/analyses/upload
+PUT        /api/v1/patient/permissions/{doctor_id}
+```
+
+---
+
+## 17. Database Schema (with Column Details)
+
+The SaaS database is redesigned from the existing SQL Server schema. Below shows the mapping from legacy tables to new tables.
+
+### 17.1 Legacy to SaaS Table Mapping
+
+| Legacy Table | Legacy Columns | New SaaS Table |
+|---|---|---|
+| Patients | idPatient, CIN, NomComplete, DN, LN, VILLE, PROFESSION, INSCRIPTION, GENDER, TELEPHONE, ADRESSE, EMAIL, TYPE_CV, OBSERVATION, typedossier, iddossier | `patients` + `patient_accounts` |
+| Consultations | id, idpatient, dateconsultation, poid, taille, temperature, ta, hba1c, glycemie_a_jeun, glycemie_apres_repas, glucagon, physique, diagonistic, tritement_conciels, tt, th, glogylie, glucosurie, ct, tg, hdl, acetone, prix, regle | `consultations` |
+| Rdvs | Id, name, Telephone, Debut, Fin, Etat, Description | `appointments` |
+| Certificats | id, idpatient, datecertificat, attesteque, type, urgance, delay, debut, fin | `certificates` |
+| REGLEMENTS | id, idconsultation, date, somme, body, lettre | `payments` |
+| users | id, NomComplete, nomarab, adresse, telephone, adressearab, login, password | `tenants` + `users` |
+| INFORMATION | ID, NOMCOMPLETE, LOGIN, PASSWORD, ROLE | `users` (roles) |
+| Villes | Nom | `cities` (seed data) |
+| *(new)* | n/a | `prescriptions`, `prescription_items` |
+| *(new)* | n/a | `invoices`, `invoice_items` |
+| *(new)* | n/a | `medications`, `medication_stock` |
+| *(new)* | n/a | `expenses`, `expense_categories` |
+| *(new)* | n/a | `medical_reports` |
+| *(new)* | n/a | `expertises`, `expertise_attachments` |
+| *(new)* | n/a | `evolutions` |
+| *(new)* | n/a | `files` (polymorphic) |
+| *(new)* | n/a | `doctor_patient_links`, `patient_permissions` |
+| *(new)* | n/a | `audit_logs`, `notifications` |
+
+### 17.2 Users Table (from existing SQL)
+
+The existing users table stores doctor/clinic information with Arabic support:
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int | NO | Primary key |
+| `NomComplete` | nvarchar(150) | NO | Full name (French) |
+| `nomarab` | nvarchar(150) | YES | Full name (Arabic) |
+| `adresse` | nvarchar(250) | YES | Address (French) |
+| `telephone` | nvarchar(20) | YES | Phone number |
+| `adressearab` | nvarchar(250) | YES | Address (Arabic) |
+| `login` | nvarchar(50) | NO | Login username |
+| `password` | nvarchar(150) | NO | Password (**PLAINTEXT in legacy!**) |
+
+> ⚠️ **SECURITY NOTE:** Legacy system stores passwords in plaintext. SaaS version MUST use bcrypt hashing.
+
+### 17.3 INFORMATION Table (Role System)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `ID` | nchar(10) | NO | Primary key |
+| `NOMCOMPLETE` | nvarchar(50) | NO | User full name |
+| `LOGIN` | varchar(50) | NO | Login credential |
+| `PASSWORD` | varchar(50) | NO | Password (**PLAINTEXT in legacy!**) |
+| `ROLE` | bit | NO | 0 = Doctor, 1 = Assistant (default: 0) |
+
+> **SaaS Enhancement:** Replace bit with role enum (admin, doctor, secretary). Add `tenant_id`, `email`, `phone`, `2fa_secret`, `email_verified_at`, `last_login_at`.
+
+---
+
+## 18. Infrastructure & Hosting
+
+### 18.1 Initial Setup
+
+| Component | Choice |
+|---|---|
+| **Web Hosting** | Hostinger (shared, upgrading to VPS as needed) |
+| **File Storage** | Backblaze B2 |
+| **Database** | MySQL on hosting provider |
+| **Domain** | tabibcare.ma (recommended) |
+| **SSL** | Let's Encrypt (free, auto-renew) |
+| **CDN** | Cloudflare (free tier) |
+
+### 18.2 Scaling Path
+
+- **Phase 1 (0-30 doctors):** Hostinger shared/VPS
+- **Phase 2 (30-100 doctors):** Dedicated VPS (DigitalOcean)
+- **Phase 3 (100+):** Cloud infrastructure with load balancing
+
+---
+
+## 19. Development Roadmap (8 Weeks)
+
+### Week 1-2: Foundation
+- Laravel setup with multi-tenancy middleware
+- Auth system (Sanctum + JWT)
+- All database migrations
+- Backblaze B2 integration
+- Next.js + TailAdmin setup with i18n and green/teal themes
+- React Native + Expo + Gluestack setup
+- Base UI components and design system
+
+### Week 3-4: Core Medical Modules
+- Patient management (CRUD, search, photo)
+- Appointment system (FullCalendar, conflict detection)
+- Consultation management (all 24 fields from SQL schema)
+- PDF generation engine (DomPDF / Browsershot)
+- Prescriptions and certificates
+
+### Week 5-6: Financial & Operations
+- Payment management (REGLEMENTS migration)
+- Invoice generation
+- Medication management and stock (new module)
+- Expense tracking
+- Assistant interface (teal navbar, 4 modules)
+
+### Week 7: Patient Mobile App
+- Patient registration and authentication
+- Doctor-patient linking (3 scenarios)
+- Appointment booking (React Native Calendars)
+- Document viewing (React Native PDF) + analyses upload (Expo Camera)
+- OneSignal integration
+
+### Week 8: Polish & Launch
+- Statistics dashboard (Recharts)
+- Medical reports, expertises, evolution tracking
+- Offline PWA support (next-pwa + IndexedDB)
+- Audit logging (Spatie Activitylog)
+- Testing (Pest + Vitest) and performance optimization
+- Deployment and go-live
+
+---
+
+## 20. Success Metrics & KPIs
+
+| Metric | 3 Months | 12 Months |
+|---|---|---|
+| Active doctor accounts | 10 | 50 |
+| Patient app downloads | 200 | 2,000 |
+| Daily app bookings | 20 | 200 |
+| Doctor retention | >90% | >85% |
+| Patient conversion to app | 15% | 30% |
+| Uptime | 99.5% | 99.9% |
+| Revenue (MAD) | 110,000 | 250,000 |
+
+---
+
+## 21. Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Shared hosting limits | High | VPS migration plan ready; monitor from day 1 |
+| Low patient app adoption | Medium | In-office onboarding; doctor promotes app |
+| Data breach | Critical | Encryption, signed URLs, audit logs, regular audits |
+| Doctor resistance to cloud | Medium | Offline support, data export, trust building |
+| Scope creep (2 months) | High | Strict sprint planning; defer non-critical features |
+| Arabic RTL bugs | Low | Dedicated RTL testing; Tailwind RTL plugin |
+| Regulatory non-compliance | Critical | Legal review; consent flows; data protection by design |
+
+---
+
+## 22. Appendix: Legacy SQL Schema Column Reference
+
+Complete column listing for every table in the existing SQL Server database (ScriptMedecin.sql). This serves as the definitive reference for data migration planning.
+
+### A. Patients Table (16 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `idPatient` | int IDENTITY(1,1) | NO | PK. Auto-increment patient ID |
+| `CIN` | nvarchar(20) | YES | National ID card number |
+| `NomComplete` | nvarchar(100) | NO | Full name |
+| `DN` | date | YES | Date of birth |
+| `LN` | nvarchar(50) | YES | Place of birth |
+| `VILLE` | nvarchar(20) | YES | City |
+| `PROFESSION` | nvarchar(50) | YES | Profession |
+| `INSCRIPTION` | date | NO | Registration date (default: getdate()) |
+| `GENDER` | nvarchar(50) | YES | Gender |
+| `TELEPHONE` | nvarchar(50) | NO | Phone (required) |
+| `ADRESSE` | nvarchar(250) | YES | Address |
+| `EMAIL` | nvarchar(100) | YES | Email |
+| `TYPE_CV` | nvarchar(20) | YES | Insurance type |
+| `OBSERVATION` | nvarchar(500) | YES | General notes |
+| `typedossier` | varchar(50) | YES | File type |
+| `iddossier` | varchar(20) | YES | External dossier ID |
+
+### B. Consultations Table (24 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY(1,1) | NO | PK |
+| `idpatient` | int | NO | FK to Patients |
+| `dateconsultation` | date | NO | Date of consultation |
+| `poid` | decimal(5,2) | YES | Weight (kg) |
+| `taille` | int | YES | Height (cm) |
+| `temperature` | decimal(5,2) | YES | Temperature |
+| `ta` | nvarchar(10) | YES | Blood pressure |
+| `hba1c` | decimal(5,2) | YES | HbA1c % |
+| `glycemie_a_jeun` | decimal(5,2) | YES | Fasting glucose |
+| `glycemie_apres_repas` | decimal(5,2) | YES | Post-meal glucose |
+| `glucagon` | decimal(5,2) | YES | Glucagon level |
+| `physique` | nvarchar(500) | YES | Physical exam notes |
+| `diagonistic` | nvarchar(500) | YES | Diagnosis |
+| `tritement_conciels` | nvarchar(500) | YES | Treatment advice |
+| `tt` | decimal(5,2) | YES | TT value |
+| `th` | decimal(5,2) | YES | TH value |
+| `glogylie` | nvarchar(500) | YES | Glycol notes |
+| `glucosurie` | char(1) | YES | Glucosuria (+/-) |
+| `ct` | decimal(5,2) | YES | Total Cholesterol |
+| `tg` | decimal(5,2) | YES | Triglycerides |
+| `hdl` | decimal(5,2) | YES | HDL |
+| `acetone` | char(1) | YES | Ketone (+/-) |
+| `prix` | decimal(5,2) | YES | Price |
+| `regle` | varchar(3) | YES | Paid? (Oui/Non) |
+
+### C. Rdvs Table (7 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `Id` | int IDENTITY(1,1) | NO | PK |
+| `name` | nvarchar(50) | YES | Patient name |
+| `Telephone` | nvarchar(50) | YES | Phone |
+| `Debut` | datetime | NO | Start time (UNIQUE) |
+| `Fin` | datetime | NO | End time |
+| `Etat` | nvarchar(10) | YES | Status |
+| `Description` | nvarchar(250) | YES | Notes |
+
+### D. Certificats Table (9 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY(1,1) | NO | PK |
+| `idpatient` | int | NO | FK to Patients |
+| `datecertificat` | date | NO | Certificate date |
+| `attesteque` | nvarchar(250) | YES | Attestation text |
+| `type` | nvarchar(150) | NO | Type (repos, aptitude) |
+| `urgance` | nvarchar(150) | YES | Urgency level |
+| `delay` | int | YES | Duration in days |
+| `debut` | date | YES | Start date |
+| `fin` | date | YES | End date |
+
+### E. REGLEMENTS Table (6 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int IDENTITY(1,1) | NO | PK |
+| `idconsultation` | int | NO | FK to Consultations |
+| `date` | date | NO | Payment date (default: getdate()) |
+| `somme` | money | NO | Amount paid |
+| `body` | nvarchar(500) | YES | Payment description |
+| `lettre` | nvarchar(150) | YES | Amount in letters |
+
+### F. users Table (8 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `id` | int | NO | PK |
+| `NomComplete` | nvarchar(150) | NO | Full name (French) |
+| `nomarab` | nvarchar(150) | YES | Full name (Arabic) |
+| `adresse` | nvarchar(250) | YES | Address (French) |
+| `telephone` | nvarchar(20) | YES | Phone |
+| `adressearab` | nvarchar(250) | YES | Address (Arabic) |
+| `login` | nvarchar(50) | NO | Username |
+| `password` | nvarchar(150) | NO | Password (**PLAINTEXT!**) |
+
+### G. INFORMATION Table (5 columns)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `ID` | nchar(10) | NO | PK |
+| `NOMCOMPLETE` | nvarchar(50) | NO | Full name |
+| `LOGIN` | varchar(50) | NO | Username |
+| `PASSWORD` | varchar(50) | NO | Password (**PLAINTEXT!**) |
+| `ROLE` | bit | NO | 0=Doctor, 1=Assistant (default: 0) |
+
+### H. Villes Table (1 column)
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `Nom` | nvarchar(150) | NO | PK. City name |
+
+### I. Other Legacy Tables (not medical — from legal module)
+
+The following tables appear to be from a separate legal/case management module. These are NOT part of the medical SaaS migration but are documented for completeness.
+
+| Table | Columns |
+|---|---|
+| contact | IDCONTACT, NOM, TEL, MAIL, SUJET, MSG, SENDED |
+| client | IDCLIENT, NOMCLIENT, ADRESSE, TEL, MAIL, LOGIN, PASSEWORD, ACTIF, CODEPROFIL |
+| dossier | IDDOSSIER, NREF, VREF, NOMCLIENT, ADVERSAIRE, DATEACCIDENT, NABONNE, SERVICE, ANNEE, MOIS, MONTANT, TYPEPRODUIT |
+| tprocedure | IDPROCEDURE, IDDOSSIER, REFERENCETRIBUNAL, NOMTRIBUNAL, BRANCHE, dateoverture |
+| jugement | IDJUGEMENT, IDPROCEDURE, DATEJUGEMENT, OBSJUGEMENT, QUALIFJUGEMENT |
+| notification | IDNOTIFICATION, IDPROCEDURE, DATENOTIFICATION, OBSNOTIFICATION, DATEDEPONOTIFICATION, NUMNOTIFICATION |
+| execution | IDEXECUTION, IDPROCEDURE, DATEEXECUTION, OBSEXECUTION, DATEDEPOEXECUTION, NUMEXECUTION |
+| audience | IDAUDIENCE, IDPROCEDURE, DATEAUDIENCE, TYPE, OBSERAUDIENCE |
+| attachedfolder | procedureID, URL |
+| attachedfile | IDJUGEMENT, URL |
+| ACTUALITES | IDACTUALITE, TITRE, DATEPUBLICATION, PUBLICATION, image |
+| drisssessionid | session_id, loggged_at, ip_address, user_agent, last_activity, user_data |
+
+---
+
+*— End of Document —*

@@ -1,0 +1,10 @@
+{
+    "require-dev": {
+        "pestphp/pest": "*"
+    },
+    "require": {
+        "laravel/scout": "*",
+        "meilisearch/meilisearch-php": "*",
+        "http-interop/http-factory-guzzle": "*"
+    }
+}
